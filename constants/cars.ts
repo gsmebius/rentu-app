@@ -1,0 +1,1 @@
+export const carTypes = ["Sedan", "Camioneta", "Pickup", "Microbus"] as const;

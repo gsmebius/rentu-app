@@ -1,0 +1,1 @@
+export const rentuApi = process.env.EXPO_PUBLIC_RENTU_API as string;
