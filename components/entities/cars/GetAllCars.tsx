@@ -5,7 +5,7 @@ import LoadingView from 'components/ui/LoadingView';
 import ErrorView from 'components/ui/ErrorView';
 import { CarSchema } from 'interfaces/cars.chemas';
 import EmptyCars from './EmptyCar';
-import { CarCard } from './carCard';
+import CarsList from './CarsList';
 
 const carService = new CarService();
 
@@ -44,9 +44,7 @@ export const GetAllCars = () => {
 
   return (
     <View>
-      {cars.map((car) => (
-        <CarCard key={car.id} car={car} />
-      ))}
+      <CarsList cars={cars} />
     </View>
   );
 };

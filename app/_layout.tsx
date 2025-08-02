@@ -3,6 +3,7 @@ import { useLoadFonts } from '../hooks/useLoadFonts';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView } from 'react-native';
 import Navbar from 'components/ui/NavbarView';
+import '../global.css';
 
 export default function Layout() {
   const fontsLoaded = useLoadFonts();

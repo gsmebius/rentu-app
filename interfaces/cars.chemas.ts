@@ -9,6 +9,7 @@ export interface CarSchema {
   mainImage: string;
   rating: number;
   totalVotes: number;
+  transmission_type: string;
 }
 
 export interface CarFilters {

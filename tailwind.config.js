@@ -6,11 +6,13 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primary: '#1A73E8',
-        secondary: '#FF6F61',
-        background: '#F5F5F5',
-        success: '#28A745',
-        error: '#DC3545',
+        primary: '#14006E',
+        secundary: '#303057',
+        edges: '#0A0029',
+        bodytxt: '#121010',
+        tag: '#DADADA',
+        success: '#005252',
+        error: '#850000',
       },
       fontFamily: {
         body: ['Poppins'],
