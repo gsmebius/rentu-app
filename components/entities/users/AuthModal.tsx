@@ -62,7 +62,7 @@ export default function AuthModal({ visible, onClose }: AuthModalProps) {
           )}
 
           <TouchableOpacity onPress={onClose} className="mt-4">
-            <Text className="text-center font-body text-sm text-red-500">Cancelar</Text>
+            <Text className="text-center font-body text-sm text-edges">Cancelar</Text>
           </TouchableOpacity>
         </View>
       </View>

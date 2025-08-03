@@ -6,6 +6,7 @@ type User = {
   email: string;
   names: string;
   last_names: string;
+  status_creation: number;
 };
 
 type AuthContextType = {
@@ -37,7 +38,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setAccessToken(accessToken);
     setRefreshToken(refreshToken);
     setSessionId(sessionId);
-
     await AsyncStorage.setItem(
       'auth',
       JSON.stringify({ user, accessToken, refreshToken, sessionId })

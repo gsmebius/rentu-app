@@ -1,8 +1,12 @@
-// components/Navbar.tsx
+// components/NavbarSession.tsx
 import { View, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
-export default function NavbarSession() {
+interface NavbarSessionProps {
+  name: string;
+}
+
+export default function NavbarSession({ name }: NavbarSessionProps) {
   return (
     <LinearGradient
       colors={['#f5f9ff', '#e3efff']}
@@ -36,10 +40,11 @@ export default function NavbarSession() {
         <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 16 }}>R</Text>
       </View>
 
-      {/* Nombre */}
+      {/* Nombre dinámico */}
       <Text style={{ fontSize: 16, fontWeight: '500', color: '#1e3a8a' }}>
-        Guillermo
+        {name}
       </Text>
     </LinearGradient>
   );
 }
+
