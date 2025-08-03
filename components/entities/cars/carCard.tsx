@@ -47,7 +47,7 @@ interface CarCardProps {
   car: CarSchema;
 }
 
-export const CarCard = ({ car }: CarCardProps) => {
+export const OneCarCard = ({ car }: CarCardProps) => {
   const imageSource =
     car.mainImage && car.mainImage.trim() !== '' ? { uri: car.mainImage } : noCarImage;
 

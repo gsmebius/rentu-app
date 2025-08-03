@@ -9,10 +9,7 @@ export default function TabView() {
   const [modalVisible, setModalVisible] = useState(false);
 
   const links = [
-    // El objeto para 'Iniciar sesión' ya está configurado para abrir el modal
     { label: 'Iniciar sesión', action: () => setModalVisible(true) },
-    // Puedes añadir más enlaces aquí si los necesitas en el futuro
-    // { label: 'Otra acción', action: () => console.log('Otra acción') },
   ];
 
   return (
@@ -56,10 +53,6 @@ export default function TabView() {
           ))}
         </View>
       </LinearGradient>
-
-      {/* Aquí es donde incluyes tu AuthModal */}
-      {/* El prop 'visible' controla si el modal se muestra. */}
-      {/* El prop 'onClose' se llama cuando el modal necesita cerrarse (ej: después de login exitoso, o si el usuario presiona 'Cancelar'). */}
       <AuthModal visible={modalVisible} onClose={() => setModalVisible(false)} />
     </>
   );

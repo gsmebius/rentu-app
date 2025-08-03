@@ -1,7 +1,7 @@
 import { useResponsiveColumns } from 'hooks/useCarListResponsive';
 import { FlatList, View } from 'react-native';
 import { CarSchema } from 'interfaces/cars.chemas';
-import { CarCard } from './CarCard';
+import { OneCarCard } from './CarCard';
 
 interface CarCardProps {
   cars: CarSchema[];
@@ -18,7 +18,7 @@ export default function CarsList({ cars }: CarCardProps) {
         numColumns={numColumns}
         renderItem={({ item }) => (
           <View className="p-1">
-            <CarCard car={item} />
+            <OneCarCard car={item} />
           </View>
         )}
         columnWrapperStyle={{
