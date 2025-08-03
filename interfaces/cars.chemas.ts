@@ -7,8 +7,8 @@ export interface CarSchema {
   type: string;
   description: string;
   mainImage: string;
-  rating: number;
-  totalVotes: number;
+  rating?: number;
+  totalVotes?: number;
   transmission_type: string;
 }
 
