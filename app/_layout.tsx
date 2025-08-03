@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { ScrollView } from 'react-native';
 import Navbar from 'components/ui/NavbarView';
 import '../global.css';
+import TabView from 'components/ui/TabView';
 
 export default function Layout() {
   const fontsLoaded = useLoadFonts();
@@ -12,13 +13,14 @@ export default function Layout() {
 
   return (
     <SafeAreaProvider>
-        {/* flex 1, ocupa todo, y respeta los edges puestos */}
+      {/* flex 1, ocupa todo, y respeta los edges puestos */}
       <SafeAreaView style={{ flex: 1 }} edges={['top', 'left', 'right', 'bottom']}>
         <Navbar />
         {/* headerShown: false quita los headers por default de Expo */}
         <ScrollView>
-            <Stack screenOptions={{ headerShown: false }} />
+          <Stack screenOptions={{ headerShown: false }} />
         </ScrollView>
+        <TabView />
       </SafeAreaView>
     </SafeAreaProvider>
   );
