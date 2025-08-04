@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { UserService } from 'services/users.service';
 
 type User = {
   id: number;
   email: string;
   names: string;
   last_names: string;
-  status_creation: number;
+  profile_image: string;
 };
 
 type AuthContextType = {
@@ -17,6 +18,7 @@ type AuthContextType = {
   login: (user: User, accessToken: string, refreshToken: string, sessionId: string) => void;
   logout: () => void;
   loading: boolean;
+  getUserStatusFromService: (user_id: number) => Promise<number | null>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -75,12 +77,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   return (
     <AuthContext.Provider
-      value={{ user, accessToken, refreshToken, sessionId, login, logout, loading }}
-    >
+      value={{
+        user,
+        accessToken,
+        refreshToken,
+        sessionId,
+        login,
+        logout,
+        loading,
+        getUserStatusFromService,
+      }}>
       {children}
     </AuthContext.Provider>
   );
 };
+
+  export const getUserStatusFromService = async (user_id: number): Promise<number | null> => {
+    if (!user_id) return null;
+
+    const userService = new UserService();
+
+    try {
+      const response = await userService.getUserStatus(user_id);
+      return response?.status ?? null;
+    } catch (error) {
+      console.error('Error fetching user status:', error);
+      return null;
+    }
+  };
 
 export const useAuth = () => {
   const context = useContext(AuthContext);

@@ -1,11 +1,17 @@
 import { CreateUserDTO, LoginUserDTO, LogoutDTO } from 'interfaces/users.schemas';
 import { rentuApi } from '../constants/secrets';
+import { fetchWithAuth } from 'auth/FetchWithAuth';
 
 export class UserService {
   private baseUrl: string;
 
   constructor() {
     this.baseUrl = `${rentuApi}/users`;
+  }
+
+  async getUserStatus(user_id: number) {
+    const response = await fetch(`${this.baseUrl}/status/creation/${user_id}`);
+    return response.json();
   }
 
   async registerUser(data: CreateUserDTO) {
@@ -30,12 +36,11 @@ export class UserService {
     return response.json();
   }
 
-  async logoutUser(data: LogoutDTO, token: string) {
-    const response = await fetch(`${this.baseUrl}/logout`, {
+  async logoutUser(data: LogoutDTO) {
+    const response = await fetchWithAuth(`${this.baseUrl}/logout`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -45,13 +50,12 @@ export class UserService {
   }
 
   // Actualizar usuario (PUT)
-  async updateUser(user_id: number, data: any, token: string) {
+  async updateUser(user_id: number, data: any) {
     const url = `${this.baseUrl}/${user_id}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
@@ -59,19 +63,19 @@ export class UserService {
   }
 
   // Eliminar usuario (PATCH /delete)
-  async deleteUser(user_id: number, token: string) {
+  async deleteUser(user_id: number) {
     const url = `${this.baseUrl}/delete?user_id=${user_id}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'PATCH',
       headers: {
-        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
       },
     });
     return response;
   }
 
   // Upload picture (single file)
-  async uploadPictureImage(user_id: string, file: any, token: string) {
+  async uploadPictureImage(user_id: string, file: any) {
     const url = `${this.baseUrl}/upload-picture`;
     const formData = new FormData();
     formData.append('file', {
@@ -81,10 +85,9 @@ export class UserService {
     } as any);
     formData.append('user_id', user_id);
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
       body: formData,
@@ -93,7 +96,7 @@ export class UserService {
   }
 
   // Upload identify documents (multiple files)
-  async uploadIdentifyDocuments(user_id: string, files: any[], token: string) {
+  async uploadIdentifyDocuments(user_id: string, files: any[]) {
     const url = `${this.baseUrl}/upload-identify-documents`;
     const formData = new FormData();
     files.forEach((file, i) => {
@@ -105,10 +108,9 @@ export class UserService {
     });
     formData.append('user_id', user_id);
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
       body: formData,
@@ -117,7 +119,7 @@ export class UserService {
   }
 
   // Upload licence documents (multiple files)
-  async uploadLicenceDocuments(user_id: string, files: any[], token: string) {
+  async uploadLicenceDocuments(user_id: string, files: any[]) {
     const url = `${this.baseUrl}/upload-licence-documents`;
     const formData = new FormData();
     files.forEach((file, i) => {
@@ -129,10 +131,9 @@ export class UserService {
     });
     formData.append('user_id', user_id);
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
       body: formData,
@@ -141,86 +142,162 @@ export class UserService {
   }
 
   // Obtener usuario por id
-  async getUserById(user_id: number, token: string) {
+  async getUserById(user_id: number) {
     const url = `${this.baseUrl}/${user_id}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
     return response;
   }
 
-  // Update step 1
-  async updateUserStep1(user_id: number, data: any, token: string) {
+  async updateUserStep1(user_id: number, data: any) {
     const url = `${this.baseUrl}/update-step-1/${user_id}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
-    return response;
+
+    if (!response.ok) {
+      let errorMessage = 'Error desconocido en la validación (step 1)';
+      try {
+        const errorData = await response.json();
+        if (errorData?.message) errorMessage = errorData.message;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
   }
 
-  // Update step 2 (with files)
-  async updateUserStep2(user_id: number, data: any, files: any[], token: string) {
-    const url = `${this.baseUrl}/update-step-2/${user_id}`;
-    const formData = new FormData();
-    // Los archivos se dividen según controlador: primeros 2 identityFiles, siguientes 2 licenceFiles
-    files.forEach((file, i) => {
-      formData.append('files', {
-        uri: file.uri,
-        name: file.name || `file${i}.jpg`,
-        type: file.type || 'image/jpeg',
-      } as any);
-    });
-    formData.append('data', JSON.stringify(data));
+  // // services/users.service.ts (método updateUserStep2 modificado)
+  // async updateUserStep2(user_id: number, data: any, identityFiles: any[], licenceFiles: any[]) {
+  //   const url = `${this.baseUrl}/update-step-2/${user_id}`;
+  //   const formData = new FormData();
 
-    const response = await fetch(url, {
+  //   // Archivos identidad (deben ser 2)
+  //   identityFiles.forEach((file, i) => {
+  //     if (file) {
+  //       formData.append('identityFiles', {
+  //         uri: file.uri,
+  //         name: file.name || `identityFile${i}.jpg`,
+  //         type: file.type || 'image/jpeg',
+  //       } as any);
+  //     }
+  //   });
+
+  //   // Archivos licencia (deben ser 2)
+  //   licenceFiles.forEach((file, i) => {
+  //     if (file) {
+  //       formData.append('licenceFiles', {
+  //         uri: file.uri,
+  //         name: file.name || `licenceFile${i}.jpg`,
+  //         type: file.type || 'image/jpeg',
+  //       } as any);
+  //     }
+  //   });
+
+  //   // Datos JSON
+  //   formData.append('data', JSON.stringify(data));
+
+  //   const response = await fetchWithAuth(url, {
+  //     method: 'POST',
+  //     body: formData,
+  //   });
+  //   return response;
+
+   async updateUserStep2(user_id: number, formData: FormData) {
+    const url = `${this.baseUrl}/update-step-2/${user_id}`;
+
+    // Log para depuración
+    console.log('🚀 Enviando request a:', url);
+    console.log('📦 FormData preparado, haciendo fetch...');
+
+    const response = await fetchWithAuth(url, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
-      },
       body: formData,
     });
-    return response;
+
+    if (!response.ok) {
+      let errorMessage = 'Error desconocido en la validación';
+      try {
+        const errorData = await response.json();
+        if (errorData?.message) errorMessage = errorData.message;
+        console.error('❌ Error en respuesta:', errorData);
+      } catch (e) {
+        console.error('❌ Error al parsear respuesta:', e);
+      }
+      throw new Error(errorMessage);
+    }
+
+    const result = await response.json();
+    console.log('✅ Respuesta recibida:', result);
+    return result;
   }
 
-  // Upload step 3 private validation photo
-  async uploadPrivateValidationPhoto(user_id: string, file: any, token: string) {
+  // async uploadPrivateValidationPhoto(user_id: string, file: any) {
+  //   const url = `${this.baseUrl}/upload-step-3`;
+  //   const formData = new FormData();
+  //   formData.append('file', {
+  //     uri: file.uri,
+  //     name: file.name || 'photo.jpg',
+  //     type: file.type || 'image/jpeg',
+  //   } as any);
+  //   formData.append('user_id', user_id);
+
+  //   const response = await fetchWithAuth(url, {
+  //     method: 'POST',
+  //     // Nota: No pongas Content-Type aquí, fetch en React Native lo asigna automáticamente para formData
+  //     body: formData,
+  //   });
+
+  //   if (!response.ok) {
+  //     let errorMessage = 'Error desconocido en la validación (step 3)';
+  //     try {
+  //       const errorData = await response.json();
+  //       if (errorData?.message) errorMessage = errorData.message;
+  //     } catch {}
+  //     throw new Error(errorMessage);
+  //   }
+
+  //   return await response.json();
+  // }
+
+  async uploadPrivateValidationPhoto(user_id: string, fileBlob: Blob, fileName: string) {
     const url = `${this.baseUrl}/upload-step-3`;
     const formData = new FormData();
-    formData.append('file', {
-      uri: file.uri,
-      name: file.name || 'photo.jpg',
-      type: file.type || 'image/jpeg',
-    } as any);
+
+    formData.append('file', fileBlob, fileName);
     formData.append('user_id', user_id);
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'multipart/form-data',
-      },
       body: formData,
     });
-    return response;
+
+    if (!response.ok) {
+      let errorMessage = 'Error desconocido en la validación (step 3)';
+      try {
+        const errorData = await response.json();
+        if (errorData?.message) errorMessage = errorData.message;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
   }
 
   // Get identity documents
-  async getIdentityDocuments(user_id: string, token: string) {
+  async getIdentityDocuments(user_id: string) {
     const url = `${this.baseUrl}/identity-documents/${user_id}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -228,7 +305,7 @@ export class UserService {
   }
 
   // Change identity documents (files)
-  async changeIdentityDocuments(user_id: string, files: any[], token: string) {
+  async changeIdentityDocuments(user_id: string, files: any[]) {
     const url = `${this.baseUrl}/change-identity-documents/${user_id}`;
     const formData = new FormData();
     files.forEach((file, i) => {
@@ -239,10 +316,9 @@ export class UserService {
       } as any);
     });
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
       body: formData,
@@ -251,12 +327,11 @@ export class UserService {
   }
 
   // Get licence documents
-  async getLicenceDocuments(user_id: string, token: string) {
+  async getLicenceDocuments(user_id: string) {
     const url = `${this.baseUrl}/licence-documents/${user_id}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
@@ -264,7 +339,7 @@ export class UserService {
   }
 
   // Change licence documents (files)
-  async changeLicenceDocuments(user_id: string, files: any[], token: string) {
+  async changeLicenceDocuments(user_id: string, files: any[]) {
     const url = `${this.baseUrl}/change-licence-documents/${user_id}`;
     const formData = new FormData();
     files.forEach((file, i) => {
@@ -275,10 +350,9 @@ export class UserService {
       } as any);
     });
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
       body: formData,

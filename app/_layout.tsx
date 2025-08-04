@@ -11,12 +11,7 @@ import NavbarView from 'components/ui/NavbarView';
 import TabView from 'components/ui/TabView';
 
 function LayoutContent() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    // Puedes poner algún loading o splash aquí mientras carga la sesión
-    return null;
-  }
+  const { user } = useAuth();
 
   return (
     <>
@@ -49,3 +44,5 @@ export default function Layout() {
     </AuthProvider>
   );
 }
+
+

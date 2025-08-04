@@ -1,3 +1,4 @@
+import { fetchWithAuth } from 'auth/FetchWithAuth';
 import { rentuApi } from '../constants/secrets';
 import { CarFilters } from 'interfaces/cars.chemas';
 
@@ -48,57 +49,53 @@ export class CarService {
     return response;
   }
 
-  async getCarsForOwner(userID: string, token: string) {
+  async getCarsForOwner(userID: string) {
     const url = `${this.baseUrl}/cars/owner/${userID}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
     });
     return response;
   }
 
-  async getCarsByOwnerForClients(userID: string, token: string) {
+  async getCarsByOwnerForClients(userID: string) {
     const url = `${this.baseUrl}/cars/by-owner/${userID}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
     });
     return response;
   }
 
-  async createCarStep1(data: any, token: string) {
+  async createCarStep1(data: any) {
     const url = `${this.baseUrl}/cars/step1`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
     return response;
   }
 
-  async createCarStep2(carID: string, data: any, token: string) {
+  async createCarStep2(carID: string, data: any) {
     const url = `${this.baseUrl}/cars/step2/${carID}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
     return response;
   }
 
-  async createCarFilesStep3(carID: string, files: any[], token: string) {
+  async createCarFilesStep3(carID: string, files: any[]) {
     const url = `${this.baseUrl}/cars/step3/${carID}`;
     const formData = new FormData();
     files.forEach((file, index) => {
@@ -109,10 +106,9 @@ export class CarService {
       } as any);
     });
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
       body: formData,
@@ -120,42 +116,35 @@ export class CarService {
     return response;
   }
 
-  async updateCar(carID: string, data: any, token: string) {
+  async updateCar(carID: string, data: any) {
     const url = `${this.baseUrl}/cars/${carID}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(data),
     });
     return response;
   }
 
-  async deleteCar(carID: string, token: string) {
+  async deleteCar(carID: string) {
     const url = `${this.baseUrl}/cars/${carID}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
     return response;
   }
 
-  async deleteFilesCar(carID: string, token: string) {
+  async deleteFilesCar(carID: string) {
     const url = `${this.baseUrl}/cars/files/${carID}`;
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'DELETE',
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
     });
     return response;
   }
 
-  async changeCarFiles(carID: string, files: any[], token: string) {
+  async changeCarFiles(carID: string, files: any[]) {
     const url = `${this.baseUrl}/cars/change-files/${carID}`;
     const formData = new FormData();
     files.forEach((file, index) => {
@@ -166,10 +155,9 @@ export class CarService {
       } as any);
     });
 
-    const response = await fetch(url, {
+    const response = await fetchWithAuth(url, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'multipart/form-data',
       },
       body: formData,
