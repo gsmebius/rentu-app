@@ -17,13 +17,13 @@ export default function ProfileView() {
   ];
 
   return (
-    <View style={styles.container}>
+    <View className="p-20" style={styles.container}>
       <View style={styles.header}>
         <Image
           source={profileImageUri ? { uri: profileImageUri } : defaultProfileImage}
           style={styles.profileImage}
         />
-        <Text style={styles.userName}>{user ? `${user.names} ${user.last_names}` : 'Usuario'}</Text>
+        <Text className="font-head" style={styles.userName}>{user ? `${user.names} ${user.last_names}` : 'Usuario'}</Text>
       </View>
 
       <View style={styles.menu}>
@@ -33,7 +33,7 @@ export default function ProfileView() {
             style={styles.menuButton}
             onPress={onPress}
             activeOpacity={0.7}>
-            <Text style={styles.menuButtonText}>{label}</Text>
+            <Text className="font-body" style={styles.menuButtonText}>{label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -46,6 +46,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
     backgroundColor: '#f9fafb',
+    justifyContent: 'center',
   },
   header: {
     alignItems: 'center',

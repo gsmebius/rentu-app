@@ -175,42 +175,6 @@ export class UserService {
     return await response.json();
   }
 
-  // // services/users.service.ts (método updateUserStep2 modificado)
-  // async updateUserStep2(user_id: number, data: any, identityFiles: any[], licenceFiles: any[]) {
-  //   const url = `${this.baseUrl}/update-step-2/${user_id}`;
-  //   const formData = new FormData();
-
-  //   // Archivos identidad (deben ser 2)
-  //   identityFiles.forEach((file, i) => {
-  //     if (file) {
-  //       formData.append('identityFiles', {
-  //         uri: file.uri,
-  //         name: file.name || `identityFile${i}.jpg`,
-  //         type: file.type || 'image/jpeg',
-  //       } as any);
-  //     }
-  //   });
-
-  //   // Archivos licencia (deben ser 2)
-  //   licenceFiles.forEach((file, i) => {
-  //     if (file) {
-  //       formData.append('licenceFiles', {
-  //         uri: file.uri,
-  //         name: file.name || `licenceFile${i}.jpg`,
-  //         type: file.type || 'image/jpeg',
-  //       } as any);
-  //     }
-  //   });
-
-  //   // Datos JSON
-  //   formData.append('data', JSON.stringify(data));
-
-  //   const response = await fetchWithAuth(url, {
-  //     method: 'POST',
-  //     body: formData,
-  //   });
-  //   return response;
-
    async updateUserStep2(user_id: number, formData: FormData) {
     const url = `${this.baseUrl}/update-step-2/${user_id}`;
 
@@ -239,34 +203,6 @@ export class UserService {
     console.log('✅ Respuesta recibida:', result);
     return result;
   }
-
-  // async uploadPrivateValidationPhoto(user_id: string, file: any) {
-  //   const url = `${this.baseUrl}/upload-step-3`;
-  //   const formData = new FormData();
-  //   formData.append('file', {
-  //     uri: file.uri,
-  //     name: file.name || 'photo.jpg',
-  //     type: file.type || 'image/jpeg',
-  //   } as any);
-  //   formData.append('user_id', user_id);
-
-  //   const response = await fetchWithAuth(url, {
-  //     method: 'POST',
-  //     // Nota: No pongas Content-Type aquí, fetch en React Native lo asigna automáticamente para formData
-  //     body: formData,
-  //   });
-
-  //   if (!response.ok) {
-  //     let errorMessage = 'Error desconocido en la validación (step 3)';
-  //     try {
-  //       const errorData = await response.json();
-  //       if (errorData?.message) errorMessage = errorData.message;
-  //     } catch {}
-  //     throw new Error(errorMessage);
-  //   }
-
-  //   return await response.json();
-  // }
 
   async uploadPrivateValidationPhoto(user_id: string, fileBlob: Blob, fileName: string) {
     const url = `${this.baseUrl}/upload-step-3`;
