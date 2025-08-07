@@ -1,0 +1,10 @@
+MyCars al darle clic a un carro, renderiza MyCarScreen
+
+MyCarScreen, quiere rendseirzar 
+MyCar
+
+PERO...
+
+si está en status 1 - renderiza CreateCarRules
+si está en status 2 - renderiza CreateCarFiles
+si está en status 3 o más - renderiza MyCar

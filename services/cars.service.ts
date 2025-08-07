@@ -80,7 +80,17 @@ export class CarService {
       },
       body: JSON.stringify(data),
     });
-    return response;
+
+    if (!response.ok) {
+      let errorMessage = 'Error desconocido en la validación (step 1)';
+      try {
+        const errorData = await response.json();
+        if (errorData?.message) errorMessage = errorData.message;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
   }
 
   async createCarStep2(carID: string, data: any) {
@@ -92,7 +102,17 @@ export class CarService {
       },
       body: JSON.stringify(data),
     });
-    return response;
+
+    if (!response.ok) {
+      let errorMessage = 'Error desconocido en la validación (step 1)';
+      try {
+        const errorData = await response.json();
+        if (errorData?.message) errorMessage = errorData.message;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
   }
 
   async createCarFilesStep3(carID: string, files: any[]) {
@@ -113,7 +133,17 @@ export class CarService {
       },
       body: formData,
     });
-    return response;
+
+    if (!response.ok) {
+      let errorMessage = 'Error desconocido en la validación (step 1)';
+      try {
+        const errorData = await response.json();
+        if (errorData?.message) errorMessage = errorData.message;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
   }
 
   async updateCar(carID: string, data: any) {
