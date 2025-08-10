@@ -7,7 +7,7 @@ import LoadingView from 'components/ui/LoadingView';
 import ErrorView from 'components/ui/ErrorView';
 import { CarSchema } from 'interfaces/cars.chemas';
 import EmptyCars from './EmptyCar';
-import CarsList from './CarsList';
+import OwnerCarsList from './OwnerCarList';
 
 const carService = new CarService();
 
@@ -60,7 +60,7 @@ export const GetCarsForOwner = ({ user_id }: Props) => {
         </Pressable>
       </View>
       <View>
-        <CarsList cars={cars} />
+        <OwnerCarsList cars={cars} />
       </View>
     </View>
   );

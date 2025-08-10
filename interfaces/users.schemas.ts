@@ -16,7 +16,6 @@ export interface LogoutDTO {
   sessionId: string;
 }
 
-
 export interface updateUserStep1DTO {
   country?: string;
   phone_number?: string;

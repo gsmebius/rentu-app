@@ -47,8 +47,8 @@ export interface createCarRules {
    price: number;
    unable: boolean;
    capacity: number;
-   availability_days: string;
-   departments_scope: string;
+   departments_scope: string
+   unavailableDates: Date[];
 }
 
 export interface updateCar {

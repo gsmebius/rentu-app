@@ -204,6 +204,15 @@ export class CarService {
     return response;
   }
 
+  async getCarStatusByID(carID: number) {
+    const url = `${this.baseUrl}/cars/status/validation/${carID}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response;
+  }
+
   async getCarByIDForClients(carID: string) {
     const url = `${this.baseUrl}/cars/client/${carID}`;
     const response = await fetch(url, {

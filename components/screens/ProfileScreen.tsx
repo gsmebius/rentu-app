@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
-import { View, ActivityIndicator } from 'react-native';
 import { getUserStatusFromService, useAuth } from 'auth/AuthContext';
 import ProfileView from 'components/entities/profile/ProfileView';
 import ProfileValidationView from 'components/entities/profile/ProfileValidationView';
+import LoadingView from 'components/ui/LoadingView';
+import EmptyProfile from 'components/entities/profile/EmptyProfile';
 
 export default function ProfileScreen() {
   const { user } = useAuth();
@@ -26,12 +27,12 @@ export default function ProfileScreen() {
     fetchStatus();
   }, [user?.id]);
 
-  if (!user || loading || status === null) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
-      </View>
-    );
+  if (loading) {
+    return <LoadingView />;
+  }
+
+  if (!user || status === null) {
+    return <EmptyProfile />;
   }
 
   return status >= 3 ? <ProfileView /> : <ProfileValidationView />;
