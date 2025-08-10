@@ -6,7 +6,7 @@ import { CarService } from 'services/cars.service';
 import LoadingView from 'components/ui/LoadingView';
 import ErrorView from 'components/ui/ErrorView';
 import { CarSchema } from 'interfaces/cars.chemas';
-import EmptyCars from './EmptyCar';
+import EmptyCars from '../EmptyCar';
 import OwnerCarsList from './OwnerCarList';
 
 const carService = new CarService();

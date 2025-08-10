@@ -13,7 +13,7 @@ export const OneOwnerCarCard = ({ car }: CarCardProps) => {
 
   return (
     <Pressable
-      onPress={() => router.push(`./may-car/${car.id}`)}
+      onPress={() => router.push(`./my-car/${car.id}`)}
       style={({ pressed }) => [
         {
           transform: [{ scale: pressed ? 0.98 : 1 }],

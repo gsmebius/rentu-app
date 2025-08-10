@@ -1,7 +1,7 @@
 import MyCarScreen from 'components/screens/MyCarScreen';
 import { View } from 'react-native';
 
-export default function MyCarsScreen() {
+export default function MyCarsPage() {
 
   return (
     <View className="py-20">

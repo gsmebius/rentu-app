@@ -1,5 +1,5 @@
 import { useAuth } from 'auth/AuthContext';
-import { GetCarsForOwner } from 'components/entities/cars/GetCarsForOwner';
+import { GetCarsForOwner } from 'components/entities/cars/CarsForOwners/GetCarsForOwner';
 import { View } from 'react-native';
 
 export default function MyCarsScreen() {

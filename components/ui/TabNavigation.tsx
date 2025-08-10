@@ -11,7 +11,7 @@ export default function TabView() {
 
   const tabs = [
     { label: 'Inicio', icon: 'home', path: '/' },
-    { label: 'Actividad', icon: 'check-circle-o', path: '/' },
+    { label: 'Actividad', icon: 'check-circle-o', path: '/activity' },
     { label: 'Mis carros', icon: 'car', path: '/my-cars' },
     { label: 'Perfil', icon: 'user', path: '/profile' },
   ];

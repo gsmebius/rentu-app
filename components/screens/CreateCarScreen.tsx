@@ -1,5 +1,5 @@
 
-import CreateCar from 'components/entities/cars/CreateCar';
+import CreateCar from 'components/entities/cars/CreateCar/CreateCar';
 import { View } from 'react-native';
 
 export default function CreateCarScreen() {
