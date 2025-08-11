@@ -45,7 +45,7 @@ export interface createCarStep1 {
 export interface createCarRules {
    international_use: boolean;
    price: number;
-   unable: boolean;
+   enable: boolean;
    capacity: number;
    departments_scope: string
    unavailableDates: Date[];

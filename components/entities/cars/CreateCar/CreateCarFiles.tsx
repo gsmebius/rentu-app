@@ -13,7 +13,7 @@ import { CarService } from 'services/cars.service';
 
 interface Props {
   carID: string;
-  onSuccess: () => void; // Avisar al padre cuando todo sale bien
+  onSuccess: () => void; // Avisar al padre cuando todo salga bien
 }
 
 const requiredFiles = [
@@ -60,6 +60,22 @@ export default function CarValidationStep3({ carID, onSuccess }: Props) {
     }
   };
 
+  // Convierte URI local o base64 a Blob
+  const uriToBlob = (uri: string): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.onload = () => {
+        resolve(xhr.response);
+      };
+      xhr.onerror = () => {
+        reject(new Error('Error al convertir URI a Blob'));
+      };
+      xhr.responseType = 'blob';
+      xhr.open('GET', uri, true);
+      xhr.send(null);
+    });
+  };
+
   const handleSubmit = async () => {
     const missing = requiredFiles.filter(({ id }) => !files[id]);
     if (missing.length > 0) {
@@ -76,21 +92,24 @@ export default function CarValidationStep3({ carID, onSuccess }: Props) {
     try {
       const carService = new CarService();
 
-      // Prepara array con objetos con uri, name y type para el service
-      const filesArray = requiredFiles.map(({ id }, index) => {
-        const file = files[id]!;
-        return {
-          uri: file.uri,
-          name: file.fileName || file.uri.split('/').pop() || `file${index}.jpg`,
-          type: file.type || 'image/jpeg',
-        };
-      });
+      const formData = new FormData();
 
-      await carService.createCarFilesStep3(carID, filesArray);
+      // Convierte cada imagen a Blob y agrega al FormData
+      for (const { id } of requiredFiles) {
+        const file = files[id]!;
+        const blob = await uriToBlob(file.uri);
+        const fileName = file.fileName || file.uri.split('/').pop() || `${id}.jpg`;
+
+        formData.append('files', blob, fileName);
+      }
+
+      // Aquí llamamos el service con el FormData ya armado
+      await carService.createCarFilesStep3(carID, formData);
 
       Alert.alert('Éxito', 'Fotos subidas correctamente.');
       onSuccess();
     } catch (error: any) {
+      console.error('Error al subir las fotos:', error);
       Alert.alert('Error', error.message || 'No se pudo subir las fotos.');
     } finally {
       setLoading(false);
@@ -101,7 +120,7 @@ export default function CarValidationStep3({ carID, onSuccess }: Props) {
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <View className="p-6">
         <Text className="mb-4 text-center font-head text-2xl text-gray-800">
-          Subir fotos del carro (Fase 3)
+          Subir fotos del carro
         </Text>
 
         {requiredFiles.map(({ id, label }) => (
@@ -121,7 +140,8 @@ export default function CarValidationStep3({ carID, onSuccess }: Props) {
             <TouchableOpacity
               onPress={() => pickImage(id)}
               disabled={loading}
-              className="rounded-xl bg-blue-600 py-3">
+              className="rounded-xl bg-blue-600 py-3"
+            >
               <Text className="text-center font-semibold text-white">
                 {files[id] ? 'Cambiar foto' : 'Seleccionar foto'}
               </Text>
@@ -132,7 +152,8 @@ export default function CarValidationStep3({ carID, onSuccess }: Props) {
         <TouchableOpacity
           onPress={handleSubmit}
           disabled={loading}
-          className={`rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-green-600'}`}>
+          className={`rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-green-600'}`}
+        >
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (

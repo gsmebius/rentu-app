@@ -115,27 +115,17 @@ export class CarService {
     return await response.json();
   }
 
-  async createCarFilesStep3(carID: string, files: any[]) {
+  async createCarFilesStep3(carID: string, formData: FormData) {
     const url = `${this.baseUrl}/cars/step3/${carID}`;
-    const formData = new FormData();
-    files.forEach((file, index) => {
-      formData.append('files', {
-        uri: file.uri,
-        name: file.name || `file${index}.jpg`,
-        type: file.type || 'image/jpeg',
-      } as any);
-    });
 
     const response = await fetchWithAuth(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
       body: formData,
+      // NO PONER Content-Type, fetch lo maneja automáticamente
     });
 
     if (!response.ok) {
-      let errorMessage = 'Error desconocido en la validación (step 1)';
+      let errorMessage = 'Error desconocido en la validación (step 3)';
       try {
         const errorData = await response.json();
         if (errorData?.message) errorMessage = errorData.message;
