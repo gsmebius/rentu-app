@@ -56,13 +56,14 @@ export default function EditCarStep2Modal({ carID, visible, onClose, onSuccess }
       } catch (error) {
         Alert.alert('Error', 'No se pudo cargar la información del carro');
         onClose();
+        throw error;
       } finally {
         setLoading(false);
       }
     };
 
     fetchCarData();
-  }, [visible, carID]);
+  }, [visible, carID, onClose]);
 
   const updateField = (field: string, value: any) => {
     setForm(prev => ({ ...prev, [field]: value }));

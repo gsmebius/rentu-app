@@ -46,7 +46,7 @@ export default function CarValidations({ carID }: Props) {
     };
 
     fetchCarStatus();
-  }, [carID]);
+  }, [carID, router]);
 
   const handleStepSuccess = () => {
     const nextStatus = ((status || 1) + 1) as CarStatus;

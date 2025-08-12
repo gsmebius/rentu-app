@@ -66,22 +66,22 @@ export default function EditCarStep3Modal({ carID, visible, onClose, onSuccess }
         const carService = new CarService();
         const response = await carService.getCarPictures(carID);
         const picturesData = await response.json();
-        
+
         const newCurrentImages = { ...currentImages };
         requiredFiles.forEach(({ id }) => {
           newCurrentImages[id] = picturesData[id] || null;
         });
         setCurrentImages(newCurrentImages);
-
       } catch (error) {
         Alert.alert('Error', 'No se pudieron cargar las fotos del carro');
+        throw error;
       } finally {
         setLoading(false);
       }
     };
 
     fetchCarPictures();
-  }, [visible, carID]);
+  }, [visible, carID, currentImages]);
 
   const pickImage = async (key: FileKey) => {
     try {
@@ -92,7 +92,7 @@ export default function EditCarStep3Modal({ carID, visible, onClose, onSuccess }
       });
 
       if (!result.canceled && result.assets.length > 0) {
-        setFiles(prev => ({ ...prev, [key]: result.assets[0] }));
+        setFiles((prev) => ({ ...prev, [key]: result.assets[0] }));
       }
     } catch (error) {
       console.error('Error al seleccionar imagen:', error);
@@ -106,7 +106,7 @@ export default function EditCarStep3Modal({ carID, visible, onClose, onSuccess }
       Alert.alert(
         'Faltan fotos',
         `Por favor selecciona todas las fotos obligatorias:\n${missing
-          .map(m => m.label)
+          .map((m) => m.label)
           .join('\n')}`
       );
       return;
@@ -136,8 +136,8 @@ export default function EditCarStep3Modal({ carID, visible, onClose, onSuccess }
   if (loading) {
     return (
       <Modal visible={visible} transparent animationType="slide">
-        <View className="flex-1 justify-center items-center bg-black/50">
-          <View className="bg-white p-6 rounded-xl w-4/5">
+        <View className="flex-1 items-center justify-center bg-black/50">
+          <View className="w-4/5 rounded-xl bg-white p-6">
             <ActivityIndicator size="large" />
             <Text className="mt-4 text-center">Cargando fotos del carro...</Text>
           </View>
@@ -148,11 +148,13 @@ export default function EditCarStep3Modal({ carID, visible, onClose, onSuccess }
 
   return (
     <Modal visible={visible} transparent animationType="slide">
-      <View className="flex-1 justify-center items-center bg-black/50">
-        <View className="bg-white rounded-xl w-4/5 max-h-[90%]">
+      <View className="flex-1 items-center justify-center bg-black/50">
+        <View className="max-h-[90%] w-4/5 rounded-xl bg-white">
           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
             <View className="p-6">
-              <Text className="mb-4 text-center font-head text-2xl text-gray-800">Editar fotos del carro</Text>
+              <Text className="mb-4 text-center font-head text-2xl text-gray-800">
+                Editar fotos del carro
+              </Text>
 
               {requiredFiles.map(({ id, label }) => (
                 <View key={id} className="mb-6">
@@ -186,23 +188,19 @@ export default function EditCarStep3Modal({ carID, visible, onClose, onSuccess }
               ))}
 
               {/* Botones */}
-              <View className="flex-row justify-between mt-4">
-                <TouchableOpacity
-                  onPress={onClose}
-                  className="rounded-xl bg-gray-300 px-6 py-3"
-                >
+              <View className="mt-4 flex-row justify-between">
+                <TouchableOpacity onPress={onClose} className="rounded-xl bg-gray-300 px-6 py-3">
                   <Text className="font-semibold">Cancelar</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity
                   onPress={handleSubmit}
                   disabled={uploading}
-                  className={`rounded-xl px-6 py-3 ${uploading ? 'bg-blue-400' : 'bg-green-600'}`}
-                >
+                  className={`rounded-xl px-6 py-3 ${uploading ? 'bg-blue-400' : 'bg-green-600'}`}>
                   {uploading ? (
                     <ActivityIndicator color="#fff" />
                   ) : (
-                    <Text className="text-white font-semibold">Guardar fotos</Text>
+                    <Text className="font-semibold text-white">Guardar fotos</Text>
                   )}
                 </TouchableOpacity>
               </View>
