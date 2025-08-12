@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -16,84 +16,120 @@ import EditCarStep3Modal from './EditCarStep3Modal';
 
 interface Props {
   carID: string;
-  onCarDeleted?: () => void; // Callback cuando se elimina el carro
+  onCarDeleted?: () => void;
 }
+
+type FileKey =
+  | 'main'
+  | 'front'
+  | 'left'
+  | 'right'
+  | 'back'
+  | 'trunk'
+  | 'interior_back'
+  | 'interior_front';
+
+interface CarPicturesResponse {
+  carPictures: {
+    id: number;
+    url_file: string;
+  }[];
+}
+
+const requiredFiles = [
+  { id: 'main' as FileKey, label: 'Foto principal del carro' },
+  { id: 'front' as FileKey, label: 'Foto frontal' },
+  { id: 'left' as FileKey, label: 'Foto lado izquierdo' },
+  { id: 'right' as FileKey, label: 'Foto lado derecho' },
+  { id: 'back' as FileKey, label: 'Foto atrás' },
+  { id: 'trunk' as FileKey, label: 'Foto del baúl abierto' },
+  { id: 'interior_back' as FileKey, label: 'Foto de adentro en parte de atrás' },
+  { id: 'interior_front' as FileKey, label: 'Foto de adentro en parte de adelante' },
+];
 
 export default function MyCar({ carID, onCarDeleted }: Props) {
   const [carData, setCarData] = useState<any>(null);
-  const [carPictures, setCarPictures] = useState<Record<string, string>>({});
+  const [carPictures, setCarPictures] = useState<Record<FileKey, string | null>>({
+    main: null,
+    front: null,
+    left: null,
+    right: null,
+    back: null,
+    trunk: null,
+    interior_back: null,
+    interior_front: null,
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Estados para los modales
+  // Modales
   const [editInfoModal, setEditInfoModal] = useState(false);
   const [editRulesModal, setEditRulesModal] = useState(false);
   const [editPhotosModal, setEditPhotosModal] = useState(false);
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-  // Cargar datos del carro
+const carService = useMemo(() => new CarService(), []);
+
+  const loadCarData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      // Info básica
+      const carJson = await carService.getCarByID(carID);
+      setCarData(carJson.car);
+
+      // Fotos
+      const picsResponse = await carService.getCarPictures(carID);
+      if (!picsResponse.ok) throw new Error('Error al obtener fotos del carro');
+      const picsJson: CarPicturesResponse = await picsResponse.json();
+
+      // Convertir array de fotos en objeto con keys known
+      // Asumo que el backend devuelve las fotos en el mismo orden de requiredFiles
+      const picsObj: Record<FileKey, string | null> = {
+        main: null,
+        front: null,
+        left: null,
+        right: null,
+        back: null,
+        trunk: null,
+        interior_back: null,
+        interior_front: null,
+      };
+
+      requiredFiles.forEach(({ id }, index) => {
+        picsObj[id] = picsJson.carPictures[index]?.url_file || null;
+      });
+
+      setCarPictures(picsObj);
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Error al cargar datos del carro');
+    } finally {
+      setLoading(false);
+    }
+  }, [carID, carService]);
+
   useEffect(() => {
-    const fetchCarData = async () => {
-      try {
-        setLoading(true);
-        const carService = new CarService();
+    loadCarData();
+  }, []);
 
-        // Obtener información básica del carro
-        const carResponse = await carService.getCarByID(carID);
-        const carJson = await carResponse.json();
-        setCarData(carJson);
-
-        // Obtener fotos del carro
-        const picturesResponse = await carService.getCarPictures(carID);
-        const picturesJson = await picturesResponse.json();
-        setCarPictures(picturesJson);
-      } catch (err) {
-        setError('No se pudo cargar la información del carro');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchCarData();
-  }, [carID]);
-
-  // Función para eliminar el carro
   const handleDeleteCar = async () => {
     setDeleting(true);
     try {
-      const carService = new CarService();
       await carService.deleteCar(carID);
       Alert.alert('Éxito', 'Carro eliminado correctamente');
-      onCarDeleted?.(); // Notificar al padre que se eliminó el carro
+      onCarDeleted?.();
+      setConfirmDeleteModal(false);
     } catch (error: any) {
       Alert.alert('Error', error?.message || 'No se pudo eliminar el carro');
     } finally {
       setDeleting(false);
-      setConfirmDeleteModal(false);
     }
   };
 
-  // Recargar datos cuando se edita algo
   const handleEditSuccess = () => {
-    // Volver a cargar los datos
-    setCarData(null);
-    setCarPictures({});
-    setLoading(true);
-    const carService = new CarService();
-
-    carService
-      .getCarByID(carID)
-      .then((res) => res.json())
-      .then((data) => {
-        setCarData(data);
-        return carService.getCarPictures(carID);
-      })
-      .then((res) => res.json())
-      .then((pics) => setCarPictures(pics))
-      .catch((err) => setError('Error al recargar datos'))
-      .finally(() => setLoading(false));
+    loadCarData();
   };
 
   if (loading) {
@@ -107,15 +143,13 @@ export default function MyCar({ carID, onCarDeleted }: Props) {
 
   if (error || !carData) {
     return (
-      <View className="flex-1 items-center justify-center">
-        <Text className="text-red-500">{error || 'No se encontró información del carro'}</Text>
+      <View className="flex-1 items-center justify-center px-6">
+        <Text className="text-center text-red-500">
+          {error || 'No se encontró información del carro'}
+        </Text>
         <TouchableOpacity
           className="mt-4 rounded bg-blue-500 px-4 py-2"
-          onPress={() => {
-            setError(null);
-            setLoading(true);
-            // Intentar cargar de nuevo
-          }}>
+          onPress={() => loadCarData()}>
           <Text className="text-white">Reintentar</Text>
         </TouchableOpacity>
       </View>
@@ -128,8 +162,8 @@ export default function MyCar({ carID, onCarDeleted }: Props) {
         {/* Información básica */}
         <View className="mb-8">
           <Text className="mb-2 text-center font-head text-3xl">
-            {carData.brand?.name || 'Marca no especificada'},{' '}
-            {carData.model?.name || 'Modelo no especificado'}
+            {carData.brand || 'Marca no especificada'},{' '}
+            {carData.model|| 'Modelo no especificado'}
           </Text>
           <Text className="text-center font-head text-xl text-gray-600">
             {carData.year || 'Año no especificado'}
@@ -153,14 +187,14 @@ export default function MyCar({ carID, onCarDeleted }: Props) {
             </View>
           )}
 
-          {/* Miniaturas de otras fotos */}
+          {/* Miniaturas otras fotos */}
           <ScrollView horizontal className="mb-4">
             {requiredFiles
               .filter(({ id }) => id !== 'main' && carPictures[id])
               .map(({ id }) => (
                 <Image
                   key={id}
-                  source={{ uri: carPictures[id] }}
+                  source={{ uri: carPictures[id]! }}
                   className="mr-2 h-24 w-24 rounded-lg"
                   resizeMode="cover"
                 />
@@ -168,7 +202,7 @@ export default function MyCar({ carID, onCarDeleted }: Props) {
           </ScrollView>
         </View>
 
-        {/* Botones de acción */}
+        {/* Botones */}
         <View className="mb-6">
           <TouchableOpacity
             onPress={() => setEditInfoModal(true)}
@@ -234,7 +268,7 @@ export default function MyCar({ carID, onCarDeleted }: Props) {
         }}
       />
 
-      {/* Modal de confirmación para eliminar */}
+      {/* Confirm delete modal */}
       <Modal visible={confirmDeleteModal} transparent animationType="fade">
         <View className="flex-1 items-center justify-center bg-black/50 p-6">
           <View className="w-full rounded-lg bg-white p-6">
@@ -270,15 +304,3 @@ export default function MyCar({ carID, onCarDeleted }: Props) {
     </ScrollView>
   );
 }
-
-// Lista de archivos requeridos (igual que en EditCarStep3Modal)
-const requiredFiles = [
-  { id: 'main', label: 'Foto principal del carro' },
-  { id: 'front', label: 'Foto frontal' },
-  { id: 'left', label: 'Foto lado izquierdo' },
-  { id: 'right', label: 'Foto lado derecho' },
-  { id: 'back', label: 'Foto atrás' },
-  { id: 'trunk', label: 'Foto del baúl abierto' },
-  { id: 'interior_back', label: 'Foto de adentro en parte de atrás' },
-  { id: 'interior_front', label: 'Foto de adentro en parte de adelante' },
-] as const;

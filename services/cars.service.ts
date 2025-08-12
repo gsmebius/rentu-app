@@ -37,7 +37,6 @@ export class CarService {
     });
     return response;
   }
-
   async getCarByID(id: string) {
     const url = `${this.baseUrl}/cars/${id}`;
     const response = await fetch(url, {
@@ -46,7 +45,13 @@ export class CarService {
         'Content-Type': 'application/json',
       },
     });
-    return response;
+
+    if (!response.ok) {
+      throw new Error('Error fetching car data');
+    }
+
+    const data = await response.json();
+    return data;
   }
 
   async getCarsForOwner(userID: string) {
@@ -115,13 +120,43 @@ export class CarService {
     return await response.json();
   }
 
+  async deleteUnavailableDays(dateID: number) {
+    const url = `${this.baseUrl}/unavailable-days/${dateID}`;
+    const response = await fetchWithAuth(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response;
+  }
+
   async createCarFilesStep3(carID: string, formData: FormData) {
     const url = `${this.baseUrl}/cars/step3/${carID}`;
 
     const response = await fetchWithAuth(url, {
       method: 'POST',
       body: formData,
-      // NO PONER Content-Type, fetch lo maneja automáticamente
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Error desconocido en la validación (step 3)';
+      try {
+        const errorData = await response.json();
+        if (errorData?.message) errorMessage = errorData.message;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  }
+
+  async changeCarFiles(carID: string, formData: FormData) {
+    const url = `${this.baseUrl}/cars/change-files/${carID}`;
+
+    const response = await fetchWithAuth(url, {
+      method: 'POST',
+      body: formData,
     });
 
     if (!response.ok) {
@@ -178,37 +213,6 @@ export class CarService {
     const url = `${this.baseUrl}/cars/files/${carID}`;
     const response = await fetchWithAuth(url, {
       method: 'DELETE',
-    });
-
-    if (!response.ok) {
-      let errorMessage = 'Error desconocido en la validación (step 1)';
-      try {
-        const errorData = await response.json();
-        if (errorData?.message) errorMessage = errorData.message;
-      } catch {}
-      throw new Error(errorMessage);
-    }
-
-    return await response.json();
-  }
-
-  async changeCarFiles(carID: string, files: any[]) {
-    const url = `${this.baseUrl}/cars/change-files/${carID}`;
-    const formData = new FormData();
-    files.forEach((file, index) => {
-      formData.append('files', {
-        uri: file.uri,
-        name: file.name || `file${index}.jpg`,
-        type: file.type || 'image/jpeg',
-      } as any);
-    });
-
-    const response = await fetchWithAuth(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-      body: formData,
     });
 
     if (!response.ok) {
