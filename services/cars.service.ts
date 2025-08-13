@@ -120,8 +120,41 @@ export class CarService {
     return await response.json();
   }
 
+  async updateCarRules(carID: string, data: any) {
+    const url = `${this.baseUrl}/cars/update/rules/${carID}`;
+    const response = await fetchWithAuth(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      let errorMessage = 'Error desconocido en la validación (step 1)';
+      try {
+        const errorData = await response.json();
+        if (errorData?.message) errorMessage = errorData.message;
+      } catch {}
+      throw new Error(errorMessage);
+    }
+
+    return await response.json();
+  }
+
   async deleteUnavailableDays(dateID: number) {
-    const url = `${this.baseUrl}/unavailable-days/${dateID}`;
+    const url = `${this.baseUrl}/cars/unavailable-days/${dateID}`;
+    const response = await fetchWithAuth(url, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    return response;
+  }
+
+  async deleteCarPlace(carPlaceID: number) {
+    const url = `${this.baseUrl}/cars/car-place/${carPlaceID}`;
     const response = await fetchWithAuth(url, {
       method: 'DELETE',
       headers: {
@@ -242,6 +275,20 @@ export class CarService {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
+    return response;
+  }
+
+  async getPlacesForCar() {
+    const url = `${this.baseUrl}/cars/places/available`;
+    const response = await fetchWithAuth(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    if (!response.ok) {
+      throw new Error('Error al obtener los lugares para el carro');
+    }
     return response;
   }
 

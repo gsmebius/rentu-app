@@ -1,9 +1,418 @@
+// import { useState, useEffect } from 'react';
+// import {
+//   View,
+//   Text,
+//   TextInput,
+//   Pressable, // ¡Ahora solo importamos Pressable!
+//   Switch,
+//   Alert,
+//   ActivityIndicator,
+//   ScrollView,
+//   Modal,
+// } from 'react-native';
+// import { Picker } from '@react-native-picker/picker';
+// import { Calendar } from 'react-native-calendars';
+// import { CarService } from 'services/cars.service';
+// import { createCarRules } from 'interfaces/cars.chemas';
+// import { carPrices } from 'constants/cars';
+
+// interface Props {
+//   carID: string;
+//   visible: boolean;
+//   onClose: () => void;
+//   onSuccess: () => void;
+// }
+
+// interface DayPressEvent {
+//   dateString: string;
+//   day: number;
+//   month: number;
+//   year: number;
+//   timestamp?: number;
+// }
+
+// interface Place {
+//   id: number;
+//   name: string;
+// }
+
+// interface UnavailableDay {
+//   id: number;
+//   date: string;
+// }
+
+// interface CarPlace {
+//   id: number; // car_place id (para delete)
+//   place_id: number;
+// }
+
+// export default function EditCarStep2Modal({ carID, visible, onClose, onSuccess }: Props) {
+//   const [form, setForm] = useState<createCarRules>({
+//     international_use: false,
+//     price: 0,
+//     enable: false,
+//     capacity: 1,
+//     unavailableDates: [],
+//     places: [],
+//   });
+
+//   const [loading, setLoading] = useState(false);
+//   const [placesLoading, setPlacesLoading] = useState(false);
+//   const [carLoading, setCarLoading] = useState(false);
+//   const [showCalendar, setShowCalendar] = useState(false);
+//   const [errors, setErrors] = useState<Record<string, boolean>>({});
+//   const [placesList, setPlacesList] = useState<Place[]>([]);
+//   const [unavailableDaysList, setUnavailableDaysList] = useState<UnavailableDay[]>([]);
+//   const [carPlacesList, setCarPlacesList] = useState<CarPlace[]>([]);
+
+//   const updateField = (field: keyof createCarRules, value: any) => {
+//     setForm((prev) => ({ ...prev, [field]: value }));
+//     setErrors((prev) => ({ ...prev, [field]: false }));
+//   };
+
+//   const togglePlace = (placeID: number) => {
+//     if (form.places.includes(placeID)) {
+//       updateField(
+//         'places',
+//         form.places.filter((id) => id !== placeID)
+//       );
+//     } else {
+//       updateField('places', [...form.places, placeID]);
+//     }
+//   };
+
+//   const fetchPlaces = async () => {
+//     setPlacesLoading(true);
+//     try {
+//       const carService = new CarService();
+//       const response = await carService.getPlacesForCar();
+
+//       if (!response.ok) {
+//           throw new Error('Error al obtener los lugares');
+//       }
+
+//       const data = await response.json();
+//       const list: Place[] = data.places ?? data;
+//       setPlacesList(list);
+//     } catch {
+//       Alert.alert('Error', 'No se pudieron cargar los lugares disponibles');
+//     } finally {
+//       setPlacesLoading(false);
+//     }
+//   };
+
+//   const fetchCar = async () => {
+//     setCarLoading(true);
+//     try {
+//       const carService = new CarService();
+//       const data = await carService.getCarByID(carID);
+
+//       if (!data.car) {
+//         throw new Error('Carro no encontrado');
+//       }
+
+//       const car = data.car;
+
+//       updateField('international_use', car.international_use ?? false);
+//       updateField('price', car.price ?? 0);
+//       updateField('enable', car.enable ?? false);
+//       updateField('capacity', car.capacity ?? 1);
+
+//       const unavailableDatesParsed = (car.car_unavailability_days ?? []).map(
+//         (d: UnavailableDay) => new Date(d.date)
+//       );
+//       updateField('unavailableDates', unavailableDatesParsed);
+//       setUnavailableDaysList(car.car_unavailability_days ?? []);
+
+//       const selectedPlaceIDs = (car.car_places ?? []).map((cp: CarPlace) => cp.place_id);
+//       updateField('places', selectedPlaceIDs);
+//       setCarPlacesList(car.car_places ?? []);
+//     } catch (error: any) {
+//       Alert.alert('Error', error?.message || 'No se pudo cargar la info del carro');
+//     } finally {
+//       setCarLoading(false);
+//     }
+//   };
+
+//   const [markedDates, setMarkedDates] = useState<{ [key: string]: { selected: boolean } }>({});
+
+//   useEffect(() => {
+//     const marked: { [key: string]: { selected: boolean } } = {};
+//     form.unavailableDates.forEach((d) => {
+//       const dateStr = d.toISOString().split('T')[0];
+//       marked[dateStr] = { selected: true };
+//     });
+//     setMarkedDates(marked);
+//   }, [form.unavailableDates]);
+
+//   const onDayPress = (day: DayPressEvent) => {
+//     const dateStr = day.dateString;
+//     const date = new Date(dateStr);
+//     const newMarkedDates = { ...markedDates };
+
+//     if (markedDates[dateStr]) {
+//       delete newMarkedDates[dateStr];
+//       updateField(
+//         'unavailableDates',
+//         form.unavailableDates.filter((d) => d.toISOString().split('T')[0] !== dateStr)
+//       );
+//     } else {
+//       newMarkedDates[dateStr] = { selected: true };
+//       updateField('unavailableDates', [...form.unavailableDates, date]);
+//     }
+//     setMarkedDates(newMarkedDates);
+//   };
+
+//   const handleRemoveDate = async (date: Date) => {
+//     const dateStr = date.toISOString().split('T')[0];
+//     const dayToDelete = unavailableDaysList.find((d) => d.date.startsWith(dateStr));
+
+//     if (!dayToDelete) {
+//       Alert.alert('Error', 'No se encontró la fecha para eliminar');
+//       return;
+//     }
+
+//     setLoading(true);
+//     try {
+//       const carService = new CarService();
+//       await carService.deleteUnavailableDays(dayToDelete.id);
+
+//       setUnavailableDaysList((prev) => prev.filter((d) => d.id !== dayToDelete.id));
+//       updateField(
+//         'unavailableDates',
+//         form.unavailableDates.filter((d) => d.toISOString().split('T')[0] !== dateStr)
+//       );
+//       setMarkedDates((prev) => {
+//         const copy = { ...prev };
+//         delete copy[dateStr];
+//         return copy;
+//       });
+//       Alert.alert('Éxito', 'Fecha eliminada correctamente');
+//     } catch {
+//       Alert.alert('Error', 'No se pudo eliminar la fecha');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const handleRemovePlace = async (placeID: number) => {
+//     const carPlace = carPlacesList.find((cp) => cp.place_id === placeID);
+//     if (!carPlace) {
+//       togglePlace(placeID);
+//       return;
+//     }
+
+//     setLoading(true);
+//     try {
+//       const carService = new CarService();
+//       await carService.deleteCarPlace(carPlace.id);
+
+//       setCarPlacesList((prev) => prev.filter((cp) => cp.id !== carPlace.id));
+//       updateField(
+//         'places',
+//         form.places.filter((id) => id !== placeID)
+//       );
+//       Alert.alert('Éxito', 'Lugar eliminado correctamente');
+//     } catch {
+//       Alert.alert('Error', 'No se pudo eliminar el lugar');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   const handleSubmit = async () => {
+//     const newErrors: Record<string, boolean> = {};
+//     if (!form.places.length) newErrors.places = true;
+//     if (!form.price || form.price <= 0) newErrors.price = true;
+//     if (!form.capacity || form.capacity <= 0) newErrors.capacity = true;
+
+//     setErrors(newErrors);
+//     if (Object.values(newErrors).some(Boolean)) {
+//       Alert.alert('Error', 'Por favor completa todos los campos obligatorios correctamente.');
+//       return;
+//     }
+
+//     setLoading(true);
+//     try {
+//       const carService = new CarService();
+//       const payload = {
+//         ...form,
+//         unavailableDates: form.unavailableDates.map((d) => d.toISOString()),
+//       };
+//       await carService.createCarStep2(carID, payload);
+//       Alert.alert('Éxito', 'Carro actualizado correctamente.');
+//       onSuccess();
+//     } catch (error: any) {
+//       Alert.alert('Error', error?.message || 'No se pudo actualizar el carro.');
+//     } finally {
+//       setLoading(false);
+//     }
+//   };
+
+//   useEffect(() => {
+//     if (visible) {
+//       fetchPlaces();
+//       fetchCar();
+//     }
+//   }, [visible]);
+
+//   if (carLoading) {
+//     return (
+//       <Modal visible={visible} transparent animationType="slide">
+//         <View className="flex-1 items-center justify-center bg-black/50">
+//           <View className="w-4/5 rounded-xl bg-white p-6">
+//             <ActivityIndicator size="large" />
+//             <Text className="mt-4 text-center">Cargando información...</Text>
+//           </View>
+//         </View>
+//       </Modal>
+//     );
+//   }
+
+//   return (
+//     <Modal visible={visible} transparent animationType="slide">
+//       <View className="flex-1 items-center justify-center bg-black/50">
+//         <View className="max-h-[90%] w-4/5 rounded-xl bg-white">
+//           <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+//             <View className="p-6">
+//               <Text className="mb-4 text-center font-head text-2xl text-gray-800">
+//                 Editar reglas del carro
+//               </Text>
+
+//               <View className="mb-4 flex-row items-center justify-between">
+//                 <Text className="font-body text-gray-800">Permitir uso internacional</Text>
+//                 <Switch
+//                   value={form.international_use}
+//                   onValueChange={(value) => updateField('international_use', value)}
+//                 />
+//               </View>
+
+//               <Text className="mb-2 font-body text-gray-800">Precio diario</Text>
+//               <View
+//                 className={`mb-4 rounded-xl border ${
+//                   errors.price ? 'border-red-500' : 'border-gray-300'
+//                 }`}>
+//                 <Picker
+//                   selectedValue={(form.price ?? 0).toString()}
+//                   onValueChange={(value) => updateField('price', Number(value))}>
+//                   <Picker.Item label="Selecciona un precio" value="0" />
+//                   {carPrices.map((price) => (
+//                     <Picker.Item key={price} label={`$${price}`} value={price.toString()} />
+//                   ))}
+//                 </Picker>
+//               </View>
+
+//               <View className="mb-4 flex-row items-center justify-between">
+//                 <Text className="font-body text-gray-800">Habilita tu carro desde ya</Text>
+//                 <Switch value={form.enable} onValueChange={(value) => updateField('enable', value)} />
+//               </View>
+
+//               <Text className="mb-2 font-body text-gray-800">Número de pasajeros permitidos</Text>
+//               <TextInput
+//                 placeholder="Ej: 5"
+//                 keyboardType="numeric"
+//                 value={(form.capacity ?? 0).toString()}
+//                 onChangeText={(text) => {
+//                   const num = Number(text);
+//                   if (!isNaN(num) && num > 0) updateField('capacity', num);
+//                   else updateField('capacity', 0);
+//                 }}
+//                 className={`mb-4 rounded-xl border px-4 py-3 ${
+//                   errors.capacity ? 'border-red-500' : 'border-gray-300'
+//                 }`}
+//               />
+
+//               <Text className="mb-2 font-body text-gray-800">Escoge los lugares disponibles</Text>
+//               <View
+//                 className={`mb-4 rounded-xl border px-4 py-3 ${
+//                   errors.places ? 'border-red-500' : 'border-gray-300'
+//                 }`}>
+//                 {placesLoading ? (
+//                   <ActivityIndicator />
+//                 ) : (
+//                   placesList.map((place) => {
+//                     const isSelected = form.places.includes(place.id);
+//                     return (
+//                       <View key={place.id} className="mb-2 flex-row items-center justify-between">
+//                         <Pressable
+//                           onPress={() => {
+//                             if (isSelected) {
+//                               handleRemovePlace(place.id);
+//                             } else {
+//                               togglePlace(place.id);
+//                             }
+//                           }}
+//                           className="flex-row items-center"
+//                         >
+//                           <View
+//                             className={`mr-3 h-5 w-5 rounded border ${
+//                               isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-400'
+//                             }`}
+//                           />
+//                           <Text>{place.name}</Text>
+//                         </Pressable>
+//                       </View>
+//                     );
+//                   })
+//                 )}
+//               </View>
+
+//               <Text className="mb-2 font-body text-gray-800">Fechas NO disponibles</Text>
+//               <Pressable
+//                 onPress={() => setShowCalendar((v) => !v)}
+//                 className="mb-4 rounded-xl bg-blue-600 py-3">
+//                 <Text className="text-center text-white">
+//                   {showCalendar ? 'Ocultar calendario' : 'Mostrar calendario'}
+//                 </Text>
+//               </Pressable>
+
+//               {showCalendar && (
+//                 <Calendar onDayPress={onDayPress} markedDates={markedDates} markingType="period" />
+//               )}
+
+//               {form.unavailableDates.length > 0 && (
+//                 <View className="mb-4">
+//                   {form.unavailableDates.map((d, i) => (
+//                     <View key={i} className="mb-2 flex-row items-center justify-between">
+//                       <Text>{d.toISOString().split('T')[0]}</Text>
+//                       <Pressable onPress={() => handleRemoveDate(d)}>
+//                         <Text className="text-red-500">Eliminar</Text>
+//                       </Pressable>
+//                     </View>
+//                   ))}
+//                 </View>
+//               )}
+
+//               <View className="mt-4 flex-row justify-between">
+//                 <Pressable onPress={onClose} className="rounded-xl bg-gray-300 px-6 py-3">
+//                   <Text className="font-semibold">Cancelar</Text>
+//                 </Pressable>
+
+//                 <Pressable
+//                   onPress={handleSubmit}
+//                   disabled={loading}
+//                   className={`rounded-xl px-6 py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}>
+//                   {loading ? (
+//                     <ActivityIndicator color="#fff" />
+//                   ) : (
+//                     <Text className="font-semibold text-white">Guardar</Text>
+//                   )}
+//                 </Pressable>
+//               </View>
+//             </View>
+//           </ScrollView>
+//         </View>
+//       </View>
+//     </Modal>
+//   );
+// }
+
 import { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TextInput,
-  TouchableOpacity,
+  Pressable,
   Switch,
   Alert,
   ActivityIndicator,
@@ -13,7 +422,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { Calendar } from 'react-native-calendars';
 import { CarService } from 'services/cars.service';
-import { departmentsElSalvador } from 'constants/global';
+import { createCarRules } from 'interfaces/cars.chemas';
 import { carPrices } from 'constants/cars';
 
 interface Props {
@@ -23,132 +432,210 @@ interface Props {
   onSuccess: () => void;
 }
 
-interface MarkedDate {
-  selected: boolean;
+interface DayPressEvent {
+  dateString: string;
+  day: number;
+  month: number;
+  year: number;
+  timestamp?: number;
+}
+
+interface Place {
+  id: number;
+  name: string;
+}
+
+interface UnavailableDay {
+  id: number;
+  date: string;
+}
+
+interface CarPlace {
+  id: number; // car_place id (para delete)
+  place_id: number;
 }
 
 export default function EditCarStep2Modal({ carID, visible, onClose, onSuccess }: Props) {
-  const carService = new CarService();
-
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<createCarRules>({
     international_use: false,
     price: 0,
     enable: false,
     capacity: 1,
-    departments_scope: '',
-    unavailableDates: [] as Date[],
+    unavailableDates: [],
+    places: [],
   });
 
-  const [markedDates, setMarkedDates] = useState<{ [key: string]: MarkedDate }>({});
-  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
-  const [errors, setErrors] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(false);
+  const [placesLoading, setPlacesLoading] = useState(false);
+  const [carLoading, setCarLoading] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
+  const [placesList, setPlacesList] = useState<Place[]>([]);
+  const [unavailableDaysList, setUnavailableDaysList] = useState<UnavailableDay[]>([]);
+  const [carPlacesList, setCarPlacesList] = useState<CarPlace[]>([]);
 
-  // Cargar datos del carro
-  useEffect(() => {
-    if (visible) {
-      loadCarData();
-    }
-  }, [visible]);
-
-  const loadCarData = async () => {
-    setLoading(true);
-    try {
-      const data = await carService.getCarByID(carID);
-      const car = data;
-
-      // Parsear departamentos
-      const deps = car.departments_scope
-        ? car.departments_scope.split(', ').map((d: string) => d.trim())
-        : [];
-
-      // Parsear fechas no disponibles
-      const initialMarked: { [key: string]: MarkedDate } = {};
-      const unavailableDatesParsed = (car.car_unavailability_days || []).map((d: any) => {
-        const dateStr = d.date.split('T')[0];
-        initialMarked[dateStr] = { selected: true };
-        return { date: new Date(d.date), id: d.id };
-      });
-
-      setForm({
-        international_use: car.international_use ?? false,
-        price: typeof car.price === 'number' ? car.price : 0,
-        enable: car.enable ?? false,
-        capacity: typeof car.capacity === 'number' ? car.capacity : 1,
-        departments_scope: car.departments_scope || '',
-        unavailableDates: unavailableDatesParsed.map((d: { date: any }) => d.date),
-      });
-      setSelectedDepartments(deps);
-      setMarkedDates(initialMarked);
-      setExistingUnavailableDates(unavailableDatesParsed);
-    } catch (error: any) {
-      Alert.alert('Error', error?.message || 'No se pudo cargar la información del carro.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const [existingUnavailableDates, setExistingUnavailableDates] = useState<
-    { date: Date; id: number }[]
-  >([]);
-
-  const updateField = (field: string, value: any) => {
+  const updateField = (field: keyof createCarRules, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: false }));
   };
 
-  const toggleDepartment = (dep: string) => {
-    let updated = [...selectedDepartments];
-    if (updated.includes(dep)) {
-      updated = updated.filter((d) => d !== dep);
+  const togglePlace = (placeID: number) => {
+    if (form.places.includes(placeID)) {
+      updateField(
+        'places',
+        form.places.filter((id) => id !== placeID)
+      );
     } else {
-      updated.push(dep);
+      updateField('places', [...form.places, placeID]);
     }
-    setSelectedDepartments(updated);
-    updateField('departments_scope', updated.join(', '));
   };
 
-  const onDayPress = (day: any) => {
+  const fetchPlaces = async () => {
+    setPlacesLoading(true);
+    try {
+      const carService = new CarService();
+      const response = await carService.getPlacesForCar();
+
+      if (!response.ok) {
+        throw new Error('Error al obtener los lugares');
+      }
+
+      const data = await response.json();
+      const list: Place[] = data.places ?? data;
+      setPlacesList(list);
+    } catch {
+      Alert.alert('Error', 'No se pudieron cargar los lugares disponibles');
+    } finally {
+      setPlacesLoading(false);
+    }
+  };
+
+  const fetchCar = async () => {
+    setCarLoading(true);
+    try {
+      const carService = new CarService();
+      const data = await carService.getCarByID(carID);
+
+      if (!data.car) {
+        throw new Error('Carro no encontrado');
+      }
+
+      const car = data.car;
+
+      updateField('international_use', car.international_use ?? false);
+      updateField('price', car.price ?? 0);
+      updateField('enable', car.enable ?? false);
+      updateField('capacity', car.capacity ?? 1);
+
+      const unavailableDatesParsed = (car.car_unavailability_days ?? []).map(
+        (d: UnavailableDay) => new Date(d.date)
+      );
+      updateField('unavailableDates', unavailableDatesParsed);
+      setUnavailableDaysList(car.car_unavailability_days ?? []);
+
+      const selectedPlaceIDs = (car.car_places ?? []).map((cp: CarPlace) => cp.place_id);
+      updateField('places', selectedPlaceIDs);
+      setCarPlacesList(car.car_places ?? []);
+    } catch (error: any) {
+      Alert.alert('Error', error?.message || 'No se pudo cargar la info del carro');
+    } finally {
+      setCarLoading(false);
+    }
+  };
+
+  const [markedDates, setMarkedDates] = useState<{ [key: string]: { selected: boolean } }>({});
+
+  useEffect(() => {
+    const marked: { [key: string]: { selected: boolean } } = {};
+    form.unavailableDates.forEach((d) => {
+      const dateStr = d.toISOString().split('T')[0];
+      marked[dateStr] = { selected: true };
+    });
+    setMarkedDates(marked);
+  }, [form.unavailableDates]);
+
+  const onDayPress = (day: DayPressEvent) => {
     const dateStr = day.dateString;
-    const newMarked = { ...markedDates };
+    const date = new Date(dateStr);
+    const newMarkedDates = { ...markedDates };
 
     if (markedDates[dateStr]) {
-      delete newMarked[dateStr];
+      delete newMarkedDates[dateStr];
       updateField(
         'unavailableDates',
         form.unavailableDates.filter((d) => d.toISOString().split('T')[0] !== dateStr)
       );
     } else {
-      newMarked[dateStr] = { selected: true };
-      updateField('unavailableDates', [...form.unavailableDates, new Date(dateStr + 'T00:00:00')]);
+      newMarkedDates[dateStr] = { selected: true };
+      updateField('unavailableDates', [...form.unavailableDates, date]);
     }
-
-    setMarkedDates(newMarked);
+    setMarkedDates(newMarkedDates);
   };
 
-  const handleRemoveDate = async (date: Date, id?: number) => {
-    if (id) {
-      try {
-        await carService.deleteUnavailableDays(id);
-        setExistingUnavailableDates((prev) => prev.filter((d) => d.id !== id));
-      } catch (error: any) {
-        Alert.alert('Error', error?.message || 'No se pudo eliminar la fecha.');
-      }
-    }
+  const handleRemoveDate = async (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
-    const newMarkedDates = { ...markedDates };
-    delete newMarkedDates[dateStr];
-    setMarkedDates(newMarkedDates);
-    updateField(
-      'unavailableDates',
-      form.unavailableDates.filter((d) => d.getTime() !== date.getTime())
-    );
+    const dayToDelete = unavailableDaysList.find((d) => d.date.startsWith(dateStr));
+
+    if (!dayToDelete) {
+      Alert.alert('Error', 'No se encontró la fecha para eliminar');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const carService = new CarService();
+      // Usando el servicio de eliminación de fechas no disponibles
+      await carService.deleteUnavailableDays(dayToDelete.id);
+
+      setUnavailableDaysList((prev) => prev.filter((d) => d.id !== dayToDelete.id));
+      updateField(
+        'unavailableDates',
+        form.unavailableDates.filter((d) => d.toISOString().split('T')[0] !== dateStr)
+      );
+      setMarkedDates((prev) => {
+        const copy = { ...prev };
+        delete copy[dateStr];
+        return copy;
+      });
+      Alert.alert('Éxito', 'Fecha eliminada correctamente');
+    } catch {
+      Alert.alert('Error', 'No se pudo eliminar la fecha');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemovePlace = async (placeID: number) => {
+    const carPlace = carPlacesList.find((cp) => cp.place_id === placeID);
+
+    if (!carPlace) {
+      // Si no se encuentra en la lista actual, solo se remueve del estado local
+      togglePlace(placeID);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const carService = new CarService();
+      // Usando el servicio de eliminación de lugares
+      await carService.deleteCarPlace(carPlace.id);
+
+      setCarPlacesList((prev) => prev.filter((cp) => cp.id !== carPlace.id));
+      updateField(
+        'places',
+        form.places.filter((id) => id !== placeID)
+      );
+      Alert.alert('Éxito', 'Lugar eliminado correctamente');
+    } catch {
+      Alert.alert('Error', 'No se pudo eliminar el lugar');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSubmit = async () => {
     const newErrors: Record<string, boolean> = {};
-    if (!form.departments_scope) newErrors.departments_scope = true;
+    if (!form.places.length) newErrors.places = true;
     if (!form.price || form.price <= 0) newErrors.price = true;
     if (!form.capacity || form.capacity <= 0) newErrors.capacity = true;
 
@@ -160,127 +647,177 @@ export default function EditCarStep2Modal({ carID, visible, onClose, onSuccess }
 
     setLoading(true);
     try {
-      await carService.createCarStep2(carID, {
+      const carService = new CarService();
+      const payload = {
         ...form,
         unavailableDates: form.unavailableDates.map((d) => d.toISOString()),
-      });
-      Alert.alert('Éxito', 'Datos de validación actualizados correctamente.');
+      };
+      await carService.updateCarRules(carID, payload);
+      Alert.alert('Éxito', 'Carro actualizado correctamente.');
       onSuccess();
-      onClose();
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'No se pudo actualizar la validación.');
+      Alert.alert('Error', error?.message || 'No se pudo actualizar el carro.');
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-        <View className="p-6">
-          <Text className="mb-4 text-center font-head text-2xl text-gray-800">
-            Editar Reglas del Carro
-          </Text>
+  useEffect(() => {
+    if (visible) {
+      fetchPlaces();
+      fetchCar();
+    }
+  }, [visible]);
 
-          {/* Uso internacional */}
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text>Permitir uso internacional</Text>
-            <Switch
-              value={form.international_use}
-              onValueChange={(v) => updateField('international_use', v)}
-            />
+  if (carLoading) {
+    return (
+      <Modal visible={visible} transparent animationType="slide">
+        <View className="flex-1 items-center justify-center bg-black/50">
+          <View className="w-4/5 rounded-xl bg-white p-6">
+            <ActivityIndicator size="large" />
+            <Text className="mt-4 text-center">Cargando información...</Text>
           </View>
-
-          {/* Precio */}
-          <Text className="mb-2">Precio diario</Text>
-          <View
-            className={`mb-4 rounded-xl border px-4 py-3 ${errors.price ? 'border-red-500' : 'border-gray-300'}`}>
-            <Picker
-              selectedValue={form.price.toString()}
-              onValueChange={(v) => updateField('price', Number(v))}>
-              <Picker.Item label="Selecciona un precio" value="0" />
-              {carPrices.map((price) => (
-                <Picker.Item key={price} label={`$${price}`} value={price.toString()} />
-              ))}
-            </Picker>
-          </View>
-
-          {/* Habilitar */}
-          <View className="mb-4 flex-row items-center justify-between">
-            <Text>Habilita tu carro desde ya</Text>
-            <Switch value={form.enable} onValueChange={(v) => updateField('enable', v)} />
-          </View>
-
-          {/* Capacidad */}
-          <Text className="mb-2">Número de pasajeros permitidos</Text>
-          <TextInput
-            keyboardType="numeric"
-            value={form.capacity.toString()}
-            onChangeText={(t) => updateField('capacity', Number(t) || 0)}
-            className={`mb-4 rounded-xl border px-4 py-3 ${errors.capacity ? 'border-red-500' : 'border-gray-300'}`}
-          />
-
-          {/* Departamentos */}
-          <Text className="mb-2">Departamentos</Text>
-          <View
-            className={`mb-4 rounded-xl border px-4 py-3 ${errors.departments_scope ? 'border-red-500' : 'border-gray-300'}`}>
-            {departmentsElSalvador.map((dep) => (
-              <TouchableOpacity
-                key={dep}
-                onPress={() => toggleDepartment(dep)}
-                className="mb-2 flex-row items-center">
-                <View
-                  className={`mr-3 h-5 w-5 rounded border ${
-                    selectedDepartments.includes(dep)
-                      ? 'border-blue-600 bg-blue-600'
-                      : 'border-gray-400'
-                  }`}
-                />
-                <Text>{dep}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Fechas no disponibles */}
-          <Text className="mb-2">Fechas NO disponibles</Text>
-          <TouchableOpacity
-            onPress={() => setShowCalendar((v) => !v)}
-            className="mb-4 rounded-xl bg-blue-600 py-3">
-            <Text className="text-center text-white">
-              {showCalendar ? 'Ocultar calendario' : 'Mostrar calendario'}
-            </Text>
-          </TouchableOpacity>
-
-          {showCalendar && <Calendar onDayPress={onDayPress} markedDates={markedDates} />}
-
-          {/* Lista de fechas */}
-          {existingUnavailableDates.map((d, i) => (
-            <View key={i} className="mb-2 flex-row items-center justify-between">
-              <Text>{d.date.toISOString().split('T')[0]}</Text>
-              <TouchableOpacity onPress={() => handleRemoveDate(d.date, d.id)}>
-                <Text className="text-red-500">Eliminar</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
-
-          {/* Botón Guardar */}
-          <TouchableOpacity
-            className={`rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}
-            onPress={handleSubmit}
-            disabled={loading}>
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text className="text-center font-semibold text-white">Guardar Cambios</Text>
-            )}
-          </TouchableOpacity>
-
-          {/* Botón Cancelar */}
-          <TouchableOpacity className="mt-4 rounded-xl bg-gray-400 py-3" onPress={onClose}>
-            <Text className="text-center text-white">Cancelar</Text>
-          </TouchableOpacity>
         </View>
-      </ScrollView>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal visible={visible} transparent animationType="slide">
+      <View className="flex-1 items-center justify-center bg-black/50">
+        <View className="max-h-[90%] w-4/5 rounded-xl bg-white">
+          <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+            <View className="p-6">
+              <Text className="mb-4 text-center font-head text-2xl text-gray-800">
+                Editar reglas del carro
+              </Text>
+
+              <View className="mb-4 flex-row items-center justify-between">
+                <Text className="font-body text-gray-800">Permitir uso internacional</Text>
+                <Switch
+                  value={form.international_use}
+                  onValueChange={(value) => updateField('international_use', value)}
+                />
+              </View>
+
+              <Text className="mb-2 font-body text-gray-800">Precio diario</Text>
+              <View
+                className={`mb-4 rounded-xl border ${
+                  errors.price ? 'border-red-500' : 'border-gray-300'
+                }`}>
+                <Picker
+                  selectedValue={(form.price ?? 0).toString()}
+                  onValueChange={(value) => updateField('price', Number(value))}>
+                  <Picker.Item label="Selecciona un precio" value="0" />
+                  {carPrices.map((price) => (
+                    <Picker.Item key={price} label={`$${price}`} value={price.toString()} />
+                  ))}
+                </Picker>
+              </View>
+
+              <View className="mb-4 flex-row items-center justify-between">
+                <Text className="font-body text-gray-800">Habilita tu carro desde ya</Text>
+                <Switch
+                  value={form.enable}
+                  onValueChange={(value) => updateField('enable', value)}
+                />
+              </View>
+
+              <Text className="mb-2 font-body text-gray-800">Número de pasajeros permitidos</Text>
+              <TextInput
+                placeholder="Ej: 5"
+                keyboardType="numeric"
+                value={(form.capacity ?? 0).toString()}
+                onChangeText={(text) => {
+                  const num = Number(text);
+                  if (!isNaN(num) && num > 0) updateField('capacity', num);
+                  else updateField('capacity', 0);
+                }}
+                className={`mb-4 rounded-xl border px-4 py-3 ${
+                  errors.capacity ? 'border-red-500' : 'border-gray-300'
+                }`}
+              />
+
+              <Text className="mb-2 font-body text-gray-800">Escoge los lugares disponibles</Text>
+              <View
+                className={`mb-4 rounded-xl border px-4 py-3 ${
+                  errors.places ? 'border-red-500' : 'border-gray-300'
+                }`}>
+                {placesLoading ? (
+                  <ActivityIndicator />
+                ) : (
+                  placesList.map((place) => {
+                    const isSelected = form.places.includes(place.id);
+                    return (
+                      <View key={place.id} className="mb-2 flex-row items-center justify-between">
+                        <Pressable
+                          onPress={() => {
+                            if (isSelected) {
+                              handleRemovePlace(place.id);
+                            } else {
+                              togglePlace(place.id);
+                            }
+                          }}
+                          className="flex-row items-center">
+                          <View
+                            className={`mr-3 h-5 w-5 rounded border ${
+                              isSelected ? 'border-blue-600 bg-blue-600' : 'border-gray-400'
+                            }`}
+                          />
+                          <Text>{place.name}</Text>
+                        </Pressable>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+
+              <Text className="mb-2 font-body text-gray-800">Fechas NO disponibles</Text>
+              <Pressable
+                onPress={() => setShowCalendar((v) => !v)}
+                className="mb-4 rounded-xl bg-blue-600 py-3">
+                <Text className="text-center text-white">
+                  {showCalendar ? 'Ocultar calendario' : 'Mostrar calendario'}
+                </Text>
+              </Pressable>
+
+              {showCalendar && (
+                <Calendar onDayPress={onDayPress} markedDates={markedDates} markingType="period" />
+              )}
+
+              {form.unavailableDates.length > 0 && (
+                <View className="mb-4">
+                  {form.unavailableDates.map((d, i) => (
+                    <View key={i} className="mb-2 flex-row items-center justify-between">
+                      <Text>{d.toISOString().split('T')[0]}</Text>
+                      <Pressable onPress={() => handleRemoveDate(d)}>
+                        <Text className="text-red-500">Eliminar</Text>
+                      </Pressable>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              <View className="mt-4 flex-row justify-between">
+                <Pressable onPress={onClose} className="rounded-xl bg-gray-300 px-6 py-3">
+                  <Text className="font-semibold">Cancelar</Text>
+                </Pressable>
+
+                <Pressable
+                  onPress={handleSubmit}
+                  disabled={loading}
+                  className={`rounded-xl px-6 py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}>
+                  {loading ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <Text className="font-semibold text-white">Guardar</Text>
+                  )}
+                </Pressable>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </View>
     </Modal>
   );
 }

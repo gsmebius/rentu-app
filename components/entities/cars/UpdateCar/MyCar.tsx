@@ -13,6 +13,9 @@ import { CarService } from 'services/cars.service';
 import EditCarStep1Modal from './EditCarStep1Modal';
 import EditCarStep2Modal from './EditCarStep2Modal';
 import EditCarStep3Modal from './EditCarStep3Modal';
+import { router } from 'expo-router';
+import LoadingView from 'components/ui/LoadingView';
+import ErrorView from 'components/ui/ErrorView';
 
 interface Props {
   carID: string;
@@ -61,6 +64,7 @@ export default function MyCar({ carID, onCarDeleted }: Props) {
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [carStatus, setCarStatus] = useState<number | null>(null);
 
   // Modales
   const [editInfoModal, setEditInfoModal] = useState(false);
@@ -69,23 +73,19 @@ export default function MyCar({ carID, onCarDeleted }: Props) {
   const [confirmDeleteModal, setConfirmDeleteModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
-const carService = useMemo(() => new CarService(), []);
+  const carService = useMemo(() => new CarService(), []);
 
   const loadCarData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      // Info básica
       const carJson = await carService.getCarByID(carID);
       setCarData(carJson.car);
 
-      // Fotos
       const picsResponse = await carService.getCarPictures(carID);
       if (!picsResponse.ok) throw new Error('Error al obtener fotos del carro');
       const picsJson: CarPicturesResponse = await picsResponse.json();
 
-      // Convertir array de fotos en objeto con keys known
-      // Asumo que el backend devuelve las fotos en el mismo orden de requiredFiles
       const picsObj: Record<FileKey, string | null> = {
         main: null,
         front: null,
@@ -103,16 +103,28 @@ const carService = useMemo(() => new CarService(), []);
 
       setCarPictures(picsObj);
     } catch (err: any) {
-      console.error(err);
+      console.error('❌ Error al cargar datos del carro:', err);
       setError(err.message || 'Error al cargar datos del carro');
     } finally {
       setLoading(false);
     }
   }, [carID, carService]);
 
+  const loadCarStatus = useCallback(async () => {
+    try {
+      const response = await carService.getCarStatusByID(Number(carID));
+      const data = await response.json();
+      setCarStatus(data.status);
+    } catch (err) {
+      console.error('❌ Error al cargar el estado del carro:', err);
+      setCarStatus(null);
+    }
+  }, [carID, carService]);
+
   useEffect(() => {
     loadCarData();
-  }, []);
+    loadCarStatus();
+  }, [carID, carService, loadCarData, loadCarStatus]);
 
   const handleDeleteCar = async () => {
     setDeleting(true);
@@ -121,6 +133,7 @@ const carService = useMemo(() => new CarService(), []);
       Alert.alert('Éxito', 'Carro eliminado correctamente');
       onCarDeleted?.();
       setConfirmDeleteModal(false);
+      router.push('/my-cars');
     } catch (error: any) {
       Alert.alert('Error', error?.message || 'No se pudo eliminar el carro');
     } finally {
@@ -130,45 +143,38 @@ const carService = useMemo(() => new CarService(), []);
 
   const handleEditSuccess = () => {
     loadCarData();
+    loadCarStatus();
   };
 
-  if (loading) {
-    return (
-      <View className="flex-1 items-center justify-center">
-        <ActivityIndicator size="large" />
-        <Text className="mt-4">Cargando información del carro...</Text>
-      </View>
-    );
-  }
+  if (loading) return <LoadingView />;
+  if (error || !carData) return <ErrorView />;
 
-  if (error || !carData) {
-    return (
-      <View className="flex-1 items-center justify-center px-6">
-        <Text className="text-center text-red-500">
-          {error || 'No se encontró información del carro'}
-        </Text>
-        <TouchableOpacity
-          className="mt-4 rounded bg-blue-500 px-4 py-2"
-          onPress={() => loadCarData()}>
-          <Text className="text-white">Reintentar</Text>
-        </TouchableOpacity>
-      </View>
-    );
-  }
+  const showWarning = carStatus === 4 || carStatus === 6;
 
   return (
     <ScrollView className="flex-1 bg-white">
+      {/* Información básica */}
+      <View className="mb-8">
+        <Text className="mb-2 text-center font-head text-3xl">
+          {carData.brand || 'Marca no especificada'}, {carData.model || 'Modelo no especificado'}
+        </Text>
+        <Text className="text-center font-head text-xl text-gray-600">
+          {carData.year || 'Año no especificado'}
+        </Text>
+      </View>
+
       <View className="p-6">
-        {/* Información básica */}
-        <View className="mb-8">
-          <Text className="mb-2 text-center font-head text-3xl">
-            {carData.brand || 'Marca no especificada'},{' '}
-            {carData.model|| 'Modelo no especificado'}
-          </Text>
-          <Text className="text-center font-head text-xl text-gray-600">
-            {carData.year || 'Año no especificado'}
-          </Text>
-        </View>
+        {/* Nota de advertencia */}
+        {showWarning && (
+          <View className="mb-6 rounded-lg bg-red-100 p-4">
+            <Text className="text-sm font-semibold text-red-700">
+              IMPORTANTE: Nuestro equipo ha determinado que tu carro no cumple con nuestras normas
+              de comunidad, esto quiere decir que puede tener información que incumpla con nuestras
+              políticas o se ha catalogado como fraudulento. Te hemos dejado las opciones para que
+              puedas editar y revisar la información nuevamente, y lo revisaremos inmediatamente.
+            </Text>
+          </View>
+        )}
 
         {/* Fotos del carro */}
         <View className="mb-8">

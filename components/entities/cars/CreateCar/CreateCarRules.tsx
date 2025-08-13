@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -13,7 +13,6 @@ import { Picker } from '@react-native-picker/picker';
 import { Calendar } from 'react-native-calendars';
 import { CarService } from 'services/cars.service';
 import { createCarRules } from 'interfaces/cars.chemas';
-import { departmentsElSalvador } from 'constants/global';
 import { carPrices } from 'constants/cars';
 
 interface Props {
@@ -29,37 +28,40 @@ interface DayPressEvent {
   timestamp?: number;
 }
 
+interface Place {
+  id: number;
+  name: string;
+}
+
 export default function CarValidationStep2({ carID, onSuccess }: Props) {
   const [form, setForm] = useState<createCarRules>({
     international_use: false,
     price: 0,
     enable: false,
     capacity: 1,
-    departments_scope: '',
     unavailableDates: [],
+    places: [],
   });
 
   const [loading, setLoading] = useState(false);
+  const [placesLoading, setPlacesLoading] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
   const [errors, setErrors] = useState<Record<string, boolean>>({});
-  const [selectedDepartments, setSelectedDepartments] = useState<string[]>([]);
+  const [placesList, setPlacesList] = useState<Place[]>([]);
 
   const updateField = (field: keyof createCarRules, value: any) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     setErrors((prev) => ({ ...prev, [field]: false }));
   };
 
-  const updateDepartmentsScope = (departments: string[]) => {
-    setSelectedDepartments(departments);
-    updateField('departments_scope', departments.join(', '));
-    setErrors((prev) => ({ ...prev, departments_scope: false }));
-  };
-
-  const toggleDepartment = (dep: string) => {
-    if (selectedDepartments.includes(dep)) {
-      updateDepartmentsScope(selectedDepartments.filter((d) => d !== dep));
+  const togglePlace = (placeID: number) => {
+    if (form.places.includes(placeID)) {
+      updateField(
+        'places',
+        form.places.filter((id) => id !== placeID)
+      );
     } else {
-      updateDepartmentsScope([...selectedDepartments, dep]);
+      updateField('places', [...form.places, placeID]);
     }
   };
 
@@ -67,7 +69,6 @@ export default function CarValidationStep2({ carID, onSuccess }: Props) {
 
   const onDayPress = (day: DayPressEvent) => {
     const dateStr = day.dateString;
-
     const newMarkedDates = { ...markedDates };
 
     if (markedDates[dateStr]) {
@@ -95,9 +96,28 @@ export default function CarValidationStep2({ carID, onSuccess }: Props) {
     );
   };
 
+  const fetchPlaces = async () => {
+    setPlacesLoading(true);
+    try {
+      const carService = new CarService();
+      const response = await carService.getPlacesForCar();
+      const data = await response.json();
+      console.log('Data recibida de getPlacesForCar:', data);
+
+      const list: Place[] = data.places ?? data; // soporte ambos formatos
+      console.log('Lista de lugares a mostrar:', list);
+
+      setPlacesList(list);
+    } catch (err) {
+      Alert.alert('Error', 'No se pudieron cargar los lugares disponibles');
+    } finally {
+      setPlacesLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     const newErrors: Record<string, boolean> = {};
-    if (!form.departments_scope) newErrors.departments_scope = true;
+    if (!form.places.length) newErrors.places = true;
     if (!form.price || form.price <= 0) newErrors.price = true;
     if (!form.capacity || form.capacity <= 0) newErrors.capacity = true;
 
@@ -124,10 +144,16 @@ export default function CarValidationStep2({ carID, onSuccess }: Props) {
     }
   };
 
+  useEffect(() => {
+    fetchPlaces();
+  }, []);
+
   return (
     <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
       <View className="p-6">
-        <Text className="mb-4 text-center font-head text-2xl text-gray-800">Reglas de tu carro</Text>
+        <Text className="mb-4 text-center font-head text-2xl text-gray-800">
+          Reglas de tu carro
+        </Text>
 
         {/* Uso internacional */}
         <View className="mb-4 flex-row items-center justify-between">
@@ -140,11 +166,13 @@ export default function CarValidationStep2({ carID, onSuccess }: Props) {
 
         {/* Precio diario */}
         <Text className="mb-2 font-body text-gray-800">Precio diario</Text>
-        <View className={`mb-4 rounded-xl border px-4 py-3 ${errors.price ? 'border-red-500' : 'border-gray-300'}`}>
+        <View
+          className={`mb-4 rounded-xl border px-4 py-3 ${
+            errors.price ? 'border-red-500' : 'border-gray-300'
+          }`}>
           <Picker
-            selectedValue={form.price.toString()}
-            onValueChange={(value) => updateField('price', Number(value))}
-          >
+            selectedValue={(form.price ?? 0).toString()}
+            onValueChange={(value) => updateField('price', Number(value))}>
             <Picker.Item label="Selecciona un precio" value="0" />
             {carPrices.map((price) => (
               <Picker.Item key={price} label={`$${price}`} value={price.toString()} />
@@ -163,52 +191,59 @@ export default function CarValidationStep2({ carID, onSuccess }: Props) {
         <TextInput
           placeholder="Ej: 5"
           keyboardType="numeric"
-          value={form.capacity.toString()}
+          value={(form.capacity ?? 0).toString()}
           onChangeText={(text) => {
             const num = Number(text);
             if (!isNaN(num) && num > 0) updateField('capacity', num);
             else updateField('capacity', 0);
           }}
-          className={`mb-4 rounded-xl border px-4 py-3 ${errors.capacity ? 'border-red-500' : 'border-gray-300'}`}
+          className={`mb-4 rounded-xl border px-4 py-3 ${
+            errors.capacity ? 'border-red-500' : 'border-gray-300'
+          }`}
         />
 
-        {/* Departamentos (multi-selección) */}
-        <Text className="mb-2 font-body text-gray-800">Escoge los departamentos</Text>
-        <View className={`mb-4 rounded-xl border px-4 py-3 ${errors.departments_scope ? 'border-red-500' : 'border-gray-300'}`}>
-          {departmentsElSalvador.map((dep) => (
-            <TouchableOpacity
-              key={dep}
-              onPress={() => toggleDepartment(dep)}
-              className="flex-row items-center mb-2"
-            >
-              <View
-                className={`h-5 w-5 mr-3 rounded border ${
-                  selectedDepartments.includes(dep) ? 'bg-blue-600 border-blue-600' : 'border-gray-400'
-                }`}
-              />
-              <Text>{dep}</Text>
-            </TouchableOpacity>
-          ))}
+        {/* Lugares disponibles */}
+        <Text className="mb-2 font-body text-gray-800">Escoge los lugares disponibles</Text>
+        <View
+          className={`mb-4 rounded-xl border px-4 py-3 ${
+            errors.places ? 'border-red-500' : 'border-gray-300'
+          }`}>
+          {placesLoading ? (
+            <ActivityIndicator />
+          ) : (
+            placesList.map((place) => (
+              <TouchableOpacity
+                key={place.id}
+                onPress={() => togglePlace(place.id)}
+                className="mb-2 flex-row items-center">
+                <View
+                  className={`mr-3 h-5 w-5 rounded border ${
+                    form.places.includes(place.id)
+                      ? 'border-blue-600 bg-blue-600'
+                      : 'border-gray-400'
+                  }`}
+                />
+                <Text>{place.name}</Text>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
 
         {/* Fechas no disponibles */}
         <Text className="mb-2 font-body text-gray-800">Fechas NO disponibles</Text>
         <TouchableOpacity
           onPress={() => setShowCalendar((v) => !v)}
-          className="mb-4 rounded-xl bg-blue-600 py-3"
-        >
-          <Text className="text-center text-white">{showCalendar ? 'Ocultar calendario' : 'Mostrar calendario'}</Text>
+          className="mb-4 rounded-xl bg-blue-600 py-3">
+          <Text className="text-center text-white">
+            {showCalendar ? 'Ocultar calendario' : 'Mostrar calendario'}
+          </Text>
         </TouchableOpacity>
 
         {showCalendar && (
-          <Calendar
-            onDayPress={onDayPress}
-            markedDates={markedDates}
-            markingType="period"
-          />
+          <Calendar onDayPress={onDayPress} markedDates={markedDates} markingType="period" />
         )}
 
-        {/* Listado de fechas seleccionadas con botón eliminar */}
+        {/* Listado de fechas seleccionadas */}
         {form.unavailableDates.length > 0 && (
           <View className="mb-4">
             {form.unavailableDates.map((d, i) => (
@@ -222,12 +257,11 @@ export default function CarValidationStep2({ carID, onSuccess }: Props) {
           </View>
         )}
 
-        {/* Botón */}
+        {/* Botón guardar */}
         <TouchableOpacity
           className={`rounded-xl py-3 ${loading ? 'bg-blue-400' : 'bg-blue-600'}`}
           onPress={handleSubmit}
-          disabled={loading}
-        >
+          disabled={loading}>
           {loading ? (
             <ActivityIndicator color="#fff" />
           ) : (
