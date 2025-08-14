@@ -5,8 +5,8 @@ import { Link } from 'expo-router';
 
 export default function Navbar() {
   const links = [
-    { label: 'Conócenos', href: '/' },
-    { label: 'Rentar mi carro', href: '/' },
+    { label: 'Conoce Rentu', href: '/' },
+    { label: 'Crear cuenta', href: '/' },
   ];
 
   return (
